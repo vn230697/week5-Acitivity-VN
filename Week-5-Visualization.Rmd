@@ -1,0 +1,99 @@
+---
+title: "Week 5 Visualizations Activity"
+author: "Vignesh Raja Nallendran"
+date: "2024-06-23"
+output:
+  html_document:
+    theme:
+      bootswatch: sketchy
+  pdf_document: default
+---
+
+``` {r, echo = FALSE}
+
+```
+The data set presented in this report is a collection of radio data from 2014. It contains a week's worth of songs played across 25 radio stations that play rock music. This data was collected to answer an analysis on what categorizes a song as classic rock because over time the definition has changed, we hope to achieve this analysis by computing the frequency of songs played by rock bands from the 1960s to early 2000s which is considered the tail end of the rock era. The data set is stored as a CSV file, delimited by a comma. 
+
+```{r setup, include = FALSE}
+library(tidyverse)
+library(dplyr)
+library(knitr)
+library(ggplot2)
+library(janitor)
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+
+```
+
+```{r, include = FALSE}
+cr_path<- "C:/Users/atl-vigneshn/Desktop/mcdaniel/ANA515/classic-rock-raw-data.csv"
+cr<-read.csv(cr_path)
+
+#cleaning, time column is numeric and according to the raw data this is in numeric format and python measures time as seconds since January 1,1970 adding the seconds would give us the required datetime
+cr$date<-as.POSIXct("1970-01-01 00:00:00", format = "%Y-%m-%d %H:%M:%S")
+STAT_TIME<-as.POSIXct("1970-01-01 00:00:00", format = "%Y-%m-%d %H:%M:%S")
+cr$newdate<-NA
+cr$newdate <- cr$date+ cr$TIME #new date is the column we need
+cr_new<- cr[c("Song.Clean","ARTIST.CLEAN","CALLSIGN","COMBINED","newdate","First.","UNIQUE_ID")]
+cr_new$count <- 1
+
+library(tidyverse)
+#GROUP raw data to get required analysis
+group_cr<-cr_new %>% group_by(ARTIST.CLEAN,Song.Clean) %>% summarise(times_song_played = sum(count),First_Played = min(newdate), Last_Played = max(newdate))
+
+#change column name
+colnames(group_cr)<- c('Artist','Song','Frequency','First Played','Last Played')
+summary<-summary(group_cr[c("First Played","Frequency","Last Played")])
+ncol<-ncol(group_cr)
+nrow<-nrow(group_cr)
+print(ncol)
+print(nrow)
+
+artist<- group_cr %>% group_by(Artist) %>% summarise(Artist_Frequency = sum(Frequency),`First Played` = min(`First Played`),`Last Played` = min(`Last Played`) )
+n_artist<-group_cr[order(group_cr$Frequency,decreasing = TRUE),]
+n_artist<-n_artist[1:10,]
+
+
+group_cr$`First Played`<-as.Date(group_cr$`First Played`)
+artist<- group_cr %>% group_by(Artist,`First Played`) %>% summarise(Artist_Frequency = sum(Frequency),`First Played` = min(`First Played`),`Last Played` = min(`Last Played`) )
+artist<-filter(artist,grepl("AC/DC",Artist))
+
+
+```
+
+```{r, echo = FALSE}
+#Inline Code
+```
+
+
+``` {r, echo = FALSE}
+#This next code chunk will make a plot in our output doc
+```
+
+ <span style="color:black">The bar chart below depicts the top 10 most played rock songs on the 3rd week of June 2014 by 25 different rock radio stations</span>
+
+``` {r, echo = FALSE, comment = NA}
+#print('Population Share Summary')
+ggplot(n_artist, aes(x=Song,y=Frequency)) + 
+  geom_bar(stat="identity",fill="grey")+
+  theme(axis.text.x = element_text(angle = 90, size = 10))+
+  geom_text(aes(label=Frequency), vjust=-0.3, size=3.5)
+
+```
+
+<span style="color:black">Attached is the below line chart for the number of times AC/DC was played in the 3rd week of June 2014 by 25 different rock radio stations</span>
+
+```{r, echo = FALSE, comment = NA}
+#print('GDP Weighted Share Summary')
+ggplot(data = artist, aes(x = `First Played`, y = Artist_Frequency)) +
+  geom_line(color="black")+
+  geom_point()+
+  geom_text(aes(label=Artist_Frequency),vjust=-0.3, size=3.5)+
+  xlab("Date") + ylab("Frequency")+
+  ggtitle("Frequency of Artist AC/DC")
+
+```
+
+```{r, echo = FALSE}
+#Once all of my code has been written, I click on the Knit button in the tool bar above to produce my document.
+```
+
